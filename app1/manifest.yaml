@@ -1,0 +1,66 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app1
+  labels: # these are replicaset labels
+    name: app1
+    tier: frontend
+spec:
+  # modify replicas according to your case
+  replicas: 1
+  selector:
+    # these are used to select the pod to create replicas
+    matchLabels:
+      name: app1
+      tier: frontend
+  # this is pod definition
+  template:
+    metadata:
+      # these labels belongs to pod
+      labels:
+        name: app1
+        tier: frontend
+    spec:
+      containers:
+      - name: app1
+        image: joindevops/app1:v1
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: app1
+spec:
+  selector:
+    name: app1
+    tier: frontend
+  ports:
+  - name: nginx-svc-port
+    protocol: TCP
+    port: 80 # service port
+    targetPort: 80 # container port
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+    name: app1
+    annotations:
+      #kubernetes.io/ingress.class: alb
+      alb.ingress.kubernetes.io/scheme: internet-facing
+      alb.ingress.kubernetes.io/target-type: ip
+      alb.ingress.kubernetes.io/certificate-arn: arn:aws:acm:us-east-1:315069654700:certificate/eefec79d-8012-4e7e-a530-baf154b833f2
+      alb.ingress.kubernetes.io/listen-ports: '[ {"HTTPS": 443}]'
+      alb.ingress.kubernetes.io/tags: Environment=dev,Team=test
+      alb.ingress.kubernetes.io/group.name: expense
+spec:
+    ingressClassName: alb
+    rules:
+    - host: "app1.daws81s.online"
+      http:
+        paths:
+        - pathType: Prefix
+          path: "/"
+          backend:
+            service:
+              name: app1
+              port:
+                number: 80
